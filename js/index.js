@@ -151,8 +151,29 @@ console.log(child.name) */
   }
 } */
 
+//  手写new
+/* function myNew() {
+  let obj = {};
+  let con = [].shift.call(arguments);
+  obj.__proto__ = con.prototype;
+  let result = con.apply(obj, arguments)
+  return result instanceof Object ? result : obj;
+} */
+
+/* function myNew(ctor, ...args) {
+  if(typeof ctor !== 'function'){
+    throw 'newOperator function the first param must be a function';
+  }
+  let obj = Object.create(ctor.prototype);
+  let res = ctor.apply(obj, args);
+  let isObject = typeof res === 'object' && typeof res !== null;
+  let isFunction = typeof res === 'function';
+  return isObject || isFunction ? res : obj
+} */
+
+
 // 手写简单的promise
-const PENDING = 'pending';
+/* const PENDING = 'pending';
 const RESOLVED = 'resolved';
 const REJECTED = 'rejected';
 
@@ -206,3 +227,104 @@ new MyPromise((resolve, reject) => {
 }).then(value => {
   console.log(value)
 })
+ */
+
+// 扁平化数组
+
+/* let arr = [1,2,[3,4,5,[6,7,8,[9,10]]]]
+while (arr.some(Array.isArray)){
+  arr = [].concat(...arr)
+}
+console.log(arr) */
+
+/* Array.prototype.myMap = function(callbackFn, thisArg) {
+  // 处理数组异常的情况
+  if(this === null || this === undefined) {
+    throw new TypeError("Cannot read property 'map' of null or undefined")
+  }
+  // 处理回调异常的情况
+  if(Object.prototype.toString.call(callbackFn) !=  "[object Function]") {
+    throw new TypeError(callbackFn + ' is not a function')
+  }
+  let O = Object(this);
+  let T = thisArg;
+  let len = O.length >>> 0;
+  let A = new Array(len)
+  for(let k = 0; k < len; k++) {
+    // 还记得原型链那一节提到的 in 吗？in 表示在原型链查找
+    // 如果用 hasOwnProperty 是有问题的，它只能找私有属性
+    if(k in O){
+      let kValue = O[k];
+      let mappedValue = callbackFn.call(T, kValue, k, O)
+      A[k] = mappedValue;
+    }
+  }
+  return A;
+}
+
+let arr = [1,2,3,4,5]
+console.log(arr.myMap((item) => item * 2)) */
+
+/* Array.prototype.myReduce = function (callbackFn, initialValue) {
+  // 处理数组异常的情况
+  if(this === null || this === undefined) {
+    throw new TypeError("Cannot read property 'map' of null or undefined")
+  }
+  // 处理回调异常的情况
+  if(Object.prototype.toString.call(callbackFn) !=  "[object Function]") {
+    throw new TypeError(callbackFn + ' is not a function')
+  }
+  let O = Object(this);
+  let len = O.length >>> 0;
+  let K = 0;
+  let accumulator = initialValue;
+  if(accumulator === undefined) {
+    for(let k = 0; k < len; k++) {
+      if(k in O) {
+        accumulator = O[k]
+        K++;
+        break;
+      }
+    }
+    // 循环结束还没退出，就表示数组全为空
+    // throw new Error('Each element of the array is empty');
+  }
+  for(let k = 0; k < len; k++) {
+    if (k in O) {
+      // 注意，核心！
+      accumulator = callbackFn.call(undefined, accumulator, O[k], O);
+    }
+  }
+  return accumulator;
+}
+
+let arr = [1,2,3,4,5,6]
+console.log(arr.myReduce((one, two) => {
+  return one + two
+})) */
+
+// 浅拷贝
+/* const shallowClone = (target) => {
+  if(typeof target === 'object' && target !== null ){
+    const cloneTarget = Array.isArray(target) ? [] : {};
+    for(let prop in target) {
+      if(target.hasOwnProperty(prop)) {
+        cloneTarget[prop] = target[prop]
+      }
+    }
+    return cloneTarget
+  } else {
+    return target
+  }
+} */
+/* let obj = {name: 'sufan', age: 20}
+const obj2 = Object.assign({}, obj, {name: 'lisi'})
+console.log(obj, obj2) */
+// let arr = [1, 2, 3];
+// let newArr = arr.slice();
+// newArr[1] = 100;
+// console.log(arr, newArr)
+let arr = [1, 2, 3];
+let newArr = [...arr];
+newArr[1] = 300
+console.log(arr, newArr)

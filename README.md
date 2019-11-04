@@ -207,6 +207,33 @@ Function.prototype.myBind = function (context) {
 }
 ~~~
 
+### new的实现
+- 新生成一个对象
+- 链接到原型
+- 绑定this
+- 返回新的对象
+
+~~~
+function myNew() {
+  let obj = {};
+  let con = [].shift.call(arguments);
+  obj.__proto__ = con.prototype;
+  let result = con.apply(obj, arguments)
+  return result instanceof Object ? result : obj;
+}
+
+function myNew(ctor, ...args) {
+  if(typeof ctor !== 'function'){
+    throw 'newOperator function the first param must be a function';
+  }
+  let obj = Object.create(ctor.prototype);
+  let res = ctor.apply(obj, args);
+  let isObject = typeof res === 'object' && typeof res !== null;
+  let isFunction = typeof res === 'function';
+  return isObject || isFunction ? res : obj
+}
+~~~
+
 ### 简单Promise的实现
 
 - 首先我们创建了三个常量用于表示状态，对于经常使用的一些值都应该通过常量来管理，便于开发及后期维护
@@ -274,4 +301,262 @@ new MyPromise((resolve, reject) => {
   console.log(value)
 })
 
+~~~
+
+### 数组扁平化
+
+#### 利用flat()
+~~~
+let arr = [1,2,[3,4,5,[6,7,8,[9,10]]]]
+console.log(arr.flat(3))
+~~~
+
+#### replace + split
+~~~
+let arr = [1,2,[3,4,5,[6,7,8,[9,10]]]]
+let str = JSON.stringify(arr)
+console.log(str.replace(/(\[|\])/g, '').split(','))
+~~~
+
+#### replace + JSON.parse
+~~~
+let arr = [1,2,[3,4,5,[6,7,8,[9,10]]]]
+let str = JSON.stringify(arr)
+str = str.replace(/(\[|\])/g, '')
+str = '[' + str + ']'
+console.log(JSON.parse(str))
+~~~
+
+#### 普通递归
+~~~
+let arr = [1,2,[3,4,5,[6,7,8,[9,10]]]]
+let result = [];
+let fn = function (handlerArr) {
+  for(let i=0; i < handlerArr.length; i++){
+    let item = handlerArr[i];
+    if(Array.isArray(handlerArr[i])){
+      fn(item)
+    }else {
+      result.push(item)
+    }
+  }
+}
+fn(arr)
+console.log(result)
+~~~
+
+#### 利用reduce函数进行迭代
+~~~
+let arr = [1,2,[3,4,5,[6,7,8,[9,10]]]]
+function flatten(handlerArr) {
+  return handlerArr.reduce((one, two) => {
+    return one.concat(Array.isArray(two) ? flatten(two) : two)
+  }, [])
+}
+
+console.log(flatten(arr))
+~~~
+
+#### 使用扩展运算符
+~~~
+let arr = [1,2,[3,4,5,[6,7,8,[9,10]]]]
+while (arr.some(Array.isArray)){
+  arr = [].concat(...arr)
+}
+console.log(arr)
+~~~
+
+### 高阶函数
+
+> 一个函数可以接收另一个函数作为参数或者返回值为一个函数，这种函数成为高阶函数
+
+#### 数组中的高阶函数
+- map
+- filter
+- reduce
+- sort
+
+#### map实现
+~~~
+Array.prototype.myMap = function(callbackFn, thisArg) {
+  // 处理数组异常的情况
+  if(this === null || this === undefined) {
+    throw new TypeError("Cannot read property 'map' of null or undefined")
+  }
+  // 处理回调异常的情况
+  if(Object.prototype.toString.call(callbackFn) !=  "[object Function]") {
+    throw new TypeError(callbackFn + ' is not a function')
+  }
+  let O = Object(this);
+  let T = thisArg;
+  let len = O.length >>> 0;
+  let A = new Array(len)
+  for(let k = 0; k < len; k++) {
+    // 还记得原型链那一节提到的 in 吗？in 表示在原型链查找
+    // 如果用 hasOwnProperty 是有问题的，它只能找私有属性
+    if(k in O){
+      let kValue = O[k];
+      let mappedValue = callbackFn.call(T, kValue, k, O)
+      A[k] = mappedValue;
+    }
+  }
+  return A;
+}
+
+let arr = [1,2,3,4,5]
+console.log(arr.myMap((item) => item * 2))
+~~~
+
+#### reduce实现
+~~~
+Array.prototype.myReduce = function (callbackFn, initialValue) {
+  // 处理数组异常的情况
+  if(this === null || this === undefined) {
+    throw new TypeError("Cannot read property 'map' of null or undefined")
+  }
+  // 处理回调异常的情况
+  if(Object.prototype.toString.call(callbackFn) !=  "[object Function]") {
+    throw new TypeError(callbackFn + ' is not a function')
+  }
+  let O = Object(this);
+  let len = O.length >>> 0;
+  let K = 0;
+  let accumulator = initialValue;
+  if(accumulator === undefined) {
+    for(let k = 0; k < len; k++) {
+      if(k in O) {
+        accumulator = O[k]
+        K++;
+        break;
+      }
+    }
+    // 循环结束还没退出，就表示数组全为空
+    // throw new Error('Each element of the array is empty');
+  }
+  for(let k = 0; k < len; k++) {
+    if (k in O) {
+      // 注意，核心！
+      accumulator = callbackFn.call(undefined, accumulator, O[k], O);
+    }
+  }
+  return accumulator;
+}
+
+let arr = [1,2,3,4,5,6]
+console.log(arr.myReduce((one, two) => {
+  return one + two
+}))
+~~~
+
+#### push和pop的实现
+~~~
+Array.prototype.push = function(...items) {
+  let O = Object(this);
+  let len = this.length >>> 0;
+  let argCount = items.length >>> 0;
+  // 2 ** 53 - 1 为JS能表示的最大正整数
+  if (len + argCount > 2 ** 53 - 1) {
+    throw new TypeError("The number of array is over the max value restricted!")
+  }
+  for(let i = 0; i < argCount; i++) {
+    O[len + i] = items[i];
+  }
+  let newLength = len + argCount;
+  O.length = newLength;
+  return newLength;
+}
+
+Array.prototype.pop = function() {
+  let O = Object(this);
+  let len = this.length >>> 0;
+  if (len === 0) {
+    O.length = 0;
+    return undefined;
+  }
+  len --;
+  let value = O[len];
+  delete O[len];
+  O.length = len;
+  return value;
+}
+
+~~~
+
+#### filter实现
+~~~
+Array.prototype.filter = function(callbackfn, thisArg) {
+  // 处理数组类型异常
+  if (this === null || this === undefined) {
+    throw new TypeError("Cannot read property 'filter' of null or undefined");
+  }
+  // 处理回调类型异常
+  if (Object.prototype.toString.call(callbackfn) != "[object Function]") {
+    throw new TypeError(callbackfn + ' is not a function')
+  }
+  let O = Object(this);
+  let len = O.length >>> 0;
+  let resLen = 0;
+  let res = [];
+  for(let i = 0; i < len; i++) {
+    if (i in O) {
+      let element = O[i];
+      if (callbackfn.call(thisArg, O[i], i, O)) {
+        res[resLen++] = element;
+      }
+    }
+  }
+  return res;
+}
+~~~
+
+### 拷贝
+
+#### 浅拷贝
+##### 手动实现
+~~~
+const shallowClone = (target) => {
+  if(typeof target === 'object' && target !== null ){
+    const cloneTarget = Array.isArray(target) ? [] : {};
+    for(let prop in target) {
+      if(target.hasOwnProperty(prop)) {
+        cloneTarget[prop] = target[prop]
+      }
+    }
+    return cloneTarget
+  } else {
+    return target
+  }
+}
+~~~
+
+##### Object.assign
+Object.assign拷贝的是对象的属性的引用, 而不是对象本身
+~~~
+let obj = {name: 'sufan', age: 20}
+const obj2 = Object.assign({}, obj, {name: 'lisi'})
+console.log(obj, obj2)
+~~~
+
+##### concat浅拷贝数组
+~~~
+let arr = [1, 2, 3];
+let newArr = arr.concat();
+newArr[1] = 100;
+console.log(arr, newArr)
+~~~
+
+##### slice浅拷贝
+~~~
+let arr = [1, 2, 3];
+let newArr = arr.slice();
+newArr[1] = 100;
+console.log(arr, newArr)
+~~~
+
+##### (...)展开运算符
+~~~
+let arr = [1, 2, 3];
+let newArr = [...arr];
+newArr[1] = 300
+console.log(arr, newArr)
 ~~~
