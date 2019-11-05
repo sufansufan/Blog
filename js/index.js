@@ -324,7 +324,29 @@ console.log(obj, obj2) */
 // let newArr = arr.slice();
 // newArr[1] = 100;
 // console.log(arr, newArr)
-let arr = [1, 2, 3];
+/* let arr = [1, 2, 3];
 let newArr = [...arr];
 newArr[1] = 300
-console.log(arr, newArr)
+console.log(arr, newArr) */
+
+//  深拷贝
+const isObject = (target) => (typeof target === 'object' || typeof target === 'function') && target !== null;
+const deepClone = (target, map = new Map()) => {
+  if (map.get(target)) return target
+  if(isObject(target)) {
+    map.set(target, true)
+    const cloneTarget = Array.isArray(target) ? [] : {};
+    for (let prop in target){
+      if(target.hasOwnProperty(prop)) {
+        cloneTarget[prop] = deepClone(target[prop], map);
+      }
+    }
+    return cloneTarget
+  } else {
+    return target
+  }
+}
+const a = {val:2}
+a.target = a
+let newObject = deepClone(a)
+console.log(newObject)

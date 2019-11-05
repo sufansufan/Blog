@@ -560,3 +560,303 @@ let newArr = [...arr];
 newArr[1] = 300
 console.log(arr, newArr)
 ~~~
+
+#### 深拷贝
+
+##### JSON.parse(JSON.stringify())
+缺点
+- 无法解决循环引用的问题
+~~~
+let a = {val: 2};
+a.target = a
+JSON.parse(JSON.stringify(a)) // 会报错 拷贝a会出现系统栈溢出， 因为出现无限循环的情况
+~~~
+- 无法拷贝特殊对象例如： regexp Date Set Map 等
+- 无法拷贝函数
+
+##### 手动实现
+简单的deepClone存在的问题和JSON.parse(JSON.stringify())一样
+~~~
+const deepClone = (target) => {
+  if(typeof target === 'object' && target !== null) {
+    const cloneTarget = Array.isArray(target) ? [] : {};
+    for (let prop in target){
+      if(target.hasOwnProperty(prop)) {
+        cloneTarget[prop] = deepClone(target[prop]);
+      }
+    }
+    return cloneTarget
+  } else {
+    return target
+  }
+}
+~~~
+
+解决循环引用的问题
+~~~
+const isObject = (target) => (typeof target === 'object' || typeof target === 'function') && target !== null;
+const deepClone = (target, map = new Map()) => {
+  if (map.get(target)) return target
+  if(isObject(target)) {
+    map.set(target, true)
+    const cloneTarget = Array.isArray(target) ? [] : {};
+    for (let prop in target){
+      if(target.hasOwnProperty(prop)) {
+        cloneTarget[prop] = deepClone(target[prop], map);
+      }
+    }
+    return cloneTarget
+  } else {
+    return target
+  }
+}
+const a = {val:2}
+a.target = a
+let newObject = deepClone(a)
+console.log(newObject)
+~~~
+引用关系
+> 在计算机设计中， 弱引用与强引用是相对的，是指不能确保其引用的对象不会被垃圾回收器回收的引用。 一个对象若只被弱引用所引用，则被认为是不可访问（或弱可访问）的，并因此可能在任何时刻被回收
+
+缺点：
+- map上的key和map构成了强引用关系， 这是比较严重的
+
+改进
+- 很简单，让 map 的 key 和 map 构成弱引用即可。ES6给我们提供了这样的数据结构，它的名字叫WeakMap，它是一种特殊的Map, 其中的键是弱引用的。其键必须是对象，而值可以是任意的。
+
+拷贝特殊对象
+
+- 可继续遍历
+~~~
+const getType = Object.prototype.toString.call(obj);
+
+const canTraverse = {
+  '[object Map]': true,
+  '[object Set]': true,
+  '[object Array]': true,
+  '[object Object]': true,
+  '[object Arguments]': true,
+};
+
+const deepClone = (target, map = new Map()) => {
+  if(!isObject(target))
+    return target;
+  let type = getType(target);
+  let cloneTarget;
+  if(!canTraverse[type]) {
+    // 处理不能遍历的对象
+    return;
+  }else {
+    // 这波操作相当关键，可以保证对象的原型不丢失！
+    let ctor = target.prototype;
+    cloneTarget = new ctor();
+  }
+
+  if(map.get(target))
+    return target;
+  map.put(target, true);
+
+  if(type === mapTag) {
+    //处理Map
+    target.forEach((item, key) => {
+      cloneTarget.set(deepClone(key), deepClone(item));
+    })
+  }
+
+  if(type === setTag) {
+    //处理Set
+    target.forEach(item => {
+      target.add(deepClone(item));
+    })
+  }
+
+  // 处理数组和对象
+  for (let prop in target) {
+    if (target.hasOwnProperty(prop)) {
+        cloneTarget[prop] = deepClone(target[prop]);
+    }
+  }
+  return cloneTarget;
+}
+~~~
+
+- 不可遍历的对象
+
+~~~
+const boolTag = '[object Boolean]';
+const numberTag = '[object Number]';
+const stringTag = '[object String]';
+const dateTag = '[object Date]';
+const errorTag = '[object Error]';
+const regexpTag = '[object RegExp]';
+const funcTag = '[object Function]';
+
+const handleRegExp = (target) => {
+  const { source, flags } = target;
+  return new target.constructor(source, flags);
+}
+
+const handleFunc = (target) => {
+  // 待会的重点部分
+}
+
+const handleNotTraverse = (target, tag) => {
+  const Ctor = targe.constructor;
+  switch(tag) {
+    case boolTag:
+    case numberTag:
+    case stringTag:
+    case errorTag:
+    case dateTag:
+      return new Ctor(target);
+    case regexpTag:
+      return handleRegExp(target);
+    case funcTag:
+      return handleFunc(target);
+    default:
+      return new Ctor(target);
+  }
+}
+
+~~~
+
+拷贝函数
+
+提到函数，在JS种有两种函数，一种是普通函数，另一种是箭头函数。每个普通函数都是 Function的实例，而箭头函数不是任何类的实例，每次调用都是不一样的引用。那我们只需要 处理普通函数的情况，箭头函数直接返回它本身就好了。
+
+那么如何来区分两者呢？
+
+利用原型。箭头函数是不存在原型的。
+
+~~~
+const handleFunc = (func) => {
+  // 箭头函数直接返回自身
+  if(!func.prototype) return func;
+  const bodyReg = /(?<={)(.|\n)+(?=})/m;
+  const paramReg = /(?<=\().+(?=\)\s+{)/;
+  const funcString = func.toString();
+  // 分别匹配 函数参数 和 函数体
+  const param = paramReg.exec(funcString);
+  const body = bodyReg.exec(funcString);
+  if(!body) return null;
+  if (param) {
+    const paramArr = param[0].split(',');
+    return new Function(...paramArr, body[0]);
+  } else {
+    return new Function(body[0]);
+  }
+}
+~~~
+
+完整展示
+
+~~~
+const getType = obj => Object.prototype.toString.call(obj);
+
+const isObject = (target) => (typeof target === 'object' || typeof target === 'function') && target !== null;
+
+const canTraverse = {
+  '[object Map]': true,
+  '[object Set]': true,
+  '[object Array]': true,
+  '[object Object]': true,
+  '[object Arguments]': true,
+};
+const mapTag = '[object Map]';
+const setTag = '[object Set]';
+const boolTag = '[object Boolean]';
+const numberTag = '[object Number]';
+const stringTag = '[object String]';
+const symbolTag = '[object Symbol]';
+const dateTag = '[object Date]';
+const errorTag = '[object Error]';
+const regexpTag = '[object RegExp]';
+const funcTag = '[object Function]';
+
+const handleRegExp = (target) => {
+  const { source, flags } = target;
+  return new target.constructor(source, flags);
+}
+
+const handleFunc = (func) => {
+  // 箭头函数直接返回自身
+  if(!func.prototype) return func;
+  const bodyReg = /(?<={)(.|\n)+(?=})/m;
+  const paramReg = /(?<=\().+(?=\)\s+{)/;
+  const funcString = func.toString();
+  // 分别匹配 函数参数 和 函数体
+  const param = paramReg.exec(funcString);
+  const body = bodyReg.exec(funcString);
+  if(!body) return null;
+  if (param) {
+    const paramArr = param[0].split(',');
+    return new Function(...paramArr, body[0]);
+  } else {
+    return new Function(body[0]);
+  }
+}
+
+const handleNotTraverse = (target, tag) => {
+  const Ctor = target.constructor;
+  switch(tag) {
+    case boolTag:
+      return new Object(Boolean.prototype.valueOf.call(target));
+    case numberTag:
+      return new Object(Number.prototype.valueOf.call(target));
+    case stringTag:
+      return new Object(String.prototype.valueOf.call(target));
+    case symbolTag:
+      return new Object(Symbol.prototype.valueOf.call(target));
+    case errorTag:
+    case dateTag:
+      return new Ctor(target);
+    case regexpTag:
+      return handleRegExp(target);
+    case funcTag:
+      return handleFunc(target);
+    default:
+      return new Ctor(target);
+  }
+}
+
+const deepClone = (target, map = new WeakMap()) => {
+  if(!isObject(target))
+    return target;
+  let type = getType(target);
+  let cloneTarget;
+  if(!canTraverse[type]) {
+    // 处理不能遍历的对象
+    return handleNotTraverse(target, type);
+  }else {
+    // 这波操作相当关键，可以保证对象的原型不丢失！
+    let ctor = target.constructor;
+    cloneTarget = new ctor();
+  }
+
+  if(map.get(target))
+    return target;
+  map.set(target, true);
+
+  if(type === mapTag) {
+    //处理Map
+    target.forEach((item, key) => {
+      cloneTarget.set(deepClone(key, map), deepClone(item, map));
+    })
+  }
+
+  if(type === setTag) {
+    //处理Set
+    target.forEach(item => {
+      cloneTarget.add(deepClone(item, map));
+    })
+  }
+
+  // 处理数组和对象
+  for (let prop in target) {
+    if (target.hasOwnProperty(prop)) {
+        cloneTarget[prop] = deepClone(target[prop], map);
+    }
+  }
+  return cloneTarget;
+}
+~~~
