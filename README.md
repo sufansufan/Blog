@@ -860,3 +860,267 @@ const deepClone = (target, map = new WeakMap()) => {
   return cloneTarget;
 }
 ~~~
+
+### setTimeout 模拟 setInterval
+- 事件触发线程：归属与浏览器而不是js的引擎，用来控制事件循环。 当js引擎执行代码块如setTimeout时，会将对应任务添加到事件线程中。由于js是单线程的所以这些待处理中的事件都得排队等待js引擎处理
+- 定时触发线程： 因为js是单线程的，如果处于阻塞线程状态就会影响记时的准确性。记时完毕后，添加事件队列，让js来执行
+具体涉及到js的EventLoop
+
+~~~
+setTimeout(function () {
+    // 任务
+    setTimeout(arguments.callee, interval);
+}, interval)
+~~~
+`arguments.callee` 获取当前函数的引用
+
+解决的问题:
+- 在前一个定时器执行完前， 不会向队列中插入新的定时器
+- 保证定时器间隔
+
+
+### 节流
+所谓节流，就是指连续触发事件但是在n秒中只执行一次。 节流会稀释函数执行的频率。
+考虑一个场景，滚动事件中会发起网络请求，但是我们并不希望用户在滚动过程中一直发起请求，隔一段时间发起一次请求，而不是一直发起情况，这种情况我们可以使用节流
+
+#### 时间戳版
+~~~
+const throttle = (func, wait=50) => {
+  // 上次执行的时间
+  let lastTime = 0;
+  return function (...args) {
+    // 当前时间
+    let now = +new Date();
+    if(now - lastTime > wait) {
+      lastTime = now
+      func.apply(this,args)
+    }
+  }
+}
+
+setInterval(
+  throttle(() => {
+    console.log(1)
+  }, 3000),
+  1
+)
+~~~
+
+#### 定时器版
+
+~~~
+const throttle = (func, wait=50) => {
+  let timeout;
+  return function (...args) {
+    if(!timeout) {
+      timeout = setTimeout(() => {
+        timeout = null;
+        func.apply(this, args)
+      }, wait);
+    }
+  }
+}
+~~~
+
+### 防抖
+所谓防抖，就是指触发事件后在 n 秒内函数只能执行一次，如果在 n 秒内又触发了事件，则会重新计算函数执行时间
+#### 非立即执行
+非立即执行的意思在触发事件函数不会立即执行，而是n秒后执行，如果在n秒内又触发了事件，这会重新计算函数执行时间
+
+~~~
+const debounce = (func, wait=50) => {
+  // 缓存一个定时器
+  let timer = 0;
+  return function(...args) {
+    if(timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      func.apply(this, args)
+    }, wait)
+  }
+}
+~~~
+
+#### 立即执行
+立即执行的意思是触发事件后函数会立即执行，然后n秒内不触发时间才能继续执行函数的结果
+
+~~~
+const debouce = (func, wait=50) => {
+  let timeout;
+  return function(...args) {
+    if(timeout) clearTimeout(timeout);
+    let callNow = !timeout;
+    timeout = setTimeout(() => {
+      timeout = null;
+    }, wait);
+    if(callNow) func.apply(this, args)
+  }
+}
+~~~
+
+#### 组合
+
+~~~
+/**
+ * @desc 函数防抖
+ * @param func 函数
+ * @param wait 延迟执行毫秒数
+ * @param immediate true 表立即执行，false 表非立即执行
+ */
+const debounce = (func, wait, immediate) => {
+  let timeout;
+  return function (...args) {
+    if(timeout) clearTimeout(timeout);
+    if(immediate) {
+      let callNow = !timeout;
+      timeout = setTimeout(() => {
+        timeout = null;
+      }, wait);
+      if(callNow) func.apply(this,args)
+    }else {
+      timeout = setTimeout(() => {
+        func.apply(this, args)
+      }, wait);
+    }
+  }
+}
+
+~~~
+
+
+### 排序
+
+#### 冒泡排序
+从第一个元素开始，把当前元素和下一个索引元素进行比较，如果当前元素大那么就交换位置，重复操作指导比较到最后一个元素
+该算法的操作数是一个等差数列 n + (n-1) + (n-2) + 1 去掉常数项后，时间啊复杂度为O(n*n)
+~~~
+const bubble = (arr) => {
+  for(let i = 0; i < arr.length; i++) {
+    for(let j = i+1; j<=arr.length; j++) {
+      if(arr[i] > arr[j]) {
+        let temp = arr[j];
+        arr[j] = arr[i];
+        arr[i] = temp
+      }
+    }
+  }
+  return arr
+}
+
+const bubble = (arr) => {
+  for(let i = arr.length - 1; i > 0 ; i--) {
+    for(let k = 0; k < i; k++) {
+      if(arr[k] > arr[k + 1]) {
+        let temp = arr[k + 1];
+        arr[k+1] = arr[k];
+        arr[k] = temp;
+      }
+    }
+  }
+  return arr
+}
+~~~
+
+#### 插入排序
+第一个元素默认是已排的元素，取下一个元素和当前元素进行比较，如果当前的元素大就交换位置，那么此时第一个元素就是当前最小的数，所以取出操作从第三个元素开始，向前对比，重复操作
+
+该算法的操作数是一个等差数列 n + (n-1) + (n-2) + 1 去掉常数项后，时间啊复杂度为O(n*n)
+~~~
+const insertSort = (arr, start = 0, end) => {
+  end = end || arr.length;
+  for(let i=0; i<end; i++) {
+    for(let j = i; j>start && arr[j-1] > arr[j]; j--) {
+      let temp = arr[j];
+      arr[j] = arr[j-1];
+      arr[j-1] = temp;
+    }
+  }
+  return arr;
+}
+~~~
+
+#### 选择排序
+遍历数组，设置最小值索引为0， 如果取出的值比当前最小值小，就替换最小值的索引， 遍历完成后，将第一个元素和最小值索引上的值交换，如上操作，第一个元素就是数组中最小的值，下次遍历就可以从从索引为1开始重复上述的操作了
+
+该算法的操作数是一个等差数列 n + (n-1) + (n-2) + 1 去掉常数项后，时间啊复杂度为O(n*n)
+~~~
+const selection = (arr) => {
+  if(!Array.isArray(arr)) return;
+  for (let i = 0; i<arr.length-1; i++){
+    let minIndex = i;
+    for(let j = i+1; j<arr.length; j++) {
+      minIndex = arr[j] < arr[minIndex] ? j : minIndex
+    }
+    let temp = arr[i];
+    arr[i] = arr[minIndex];
+    arr[minIndex] = temp;
+  }
+  return arr;
+}
+~~~
+
+#### 归并排序
+递归的将数组两两分开直到最多包含两个元素，然后将数组排序合并，最终合并为排序好的数组
+
+~~~
+const sort = (arr) => {
+  if(!Array.isArray(arr)) return;
+  mergeSort(arr, 0, arr.length - 1);
+  return arr
+}
+const mergeSort = (arr, left, right) => {
+  if(left === right) return   // 左右索引相同
+  let mid = parseInt(left + ((right - left) >> 1));
+  mergeSort(arr, left, mid)
+  mergeSort(arr, mid + 1, right)
+
+  let help = [];
+  let i = 0;
+  let p1 = left;
+  let p2 = mid + 1;
+  console.log(mid)
+  console.log(p1, p2, 7777777)
+  while (p1 <= mid && p2 <= right) {
+    console.log(arr[p1++], 333)
+    help[i++] = arr[p1] < arr[p2] ? arr[p1++] : arr[p2++]
+  }
+  while (p1 <= mid) {
+    help[i++] = arr[p1++];
+  }
+  while (p2 <= right) {
+    help[i++] = arr[p2++];
+  }
+  for (let i = 0; i < help.length; i++) {
+    arr[left + i] = help[i];
+  }
+  return arr;
+}
+
+~~~
+
+#### 快排
+随机选取一个数组中的值作为基准值，从左至右与基准值对比大小，比基准值小的放左边，大的放右边，对比完成后将基准值和第一个比基准值大的交换位置。然后将数组以基准值的位置分为两部分，继续递归以上操作。
+
+该算法的复杂度和归并排序是相同的，但是额外空间复杂度比归并排序少，只需 O(logN)，并且相比归并排序来说，所需的常数时间也更少。
+~~~
+let arr = [1,5,7,3,6,9,2,6,8]
+var quickSort = function(arr) {
+  　　if (arr.length <= 1) {//如果数组长度小于等于1无需判断直接返回即可
+          return arr;
+      }
+  　　var pivotIndex = Math.floor(arr.length / 2);//取基准点
+  　　var pivot = arr.splice(pivotIndex, 1)[0];//取基准点的值,splice(index,1)函数可以返回数组中被删除的那个数
+  　　var left = [];//存放比基准点小的数组
+  　　var right = [];//存放比基准点大的数组
+  　　for (var i = 0; i < arr.length; i++){ //遍历数组，进行判断分配
+  　　　　if (arr[i] < pivot) {
+  　　　　　　left.push(arr[i]);//比基准点小的放在左边数组
+  　　　　} else {
+  　　　　　　right.push(arr[i]);//比基准点大的放在右边数组
+  　　　　}
+  　　}
+           //递归执行以上操作,对左右两个数组进行操作，直到数组长度为<=1；
+  　　return quickSort(left).concat([pivot], quickSort(right));
+  };
+
+console.log(quickSort(arr))
+~~~

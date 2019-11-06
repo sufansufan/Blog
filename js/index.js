@@ -330,7 +330,7 @@ newArr[1] = 300
 console.log(arr, newArr) */
 
 //  深拷贝
-const isObject = (target) => (typeof target === 'object' || typeof target === 'function') && target !== null;
+/* const isObject = (target) => (typeof target === 'object' || typeof target === 'function') && target !== null;
 const deepClone = (target, map = new Map()) => {
   if (map.get(target)) return target
   if(isObject(target)) {
@@ -350,3 +350,200 @@ const a = {val:2}
 a.target = a
 let newObject = deepClone(a)
 console.log(newObject)
+ */
+// 冒泡排序
+/* const bubble = (arr) => {
+  for(let i = 0; i < arr.length; i++) {
+    for(let j = i+1; j<=arr.length; j++) {
+      if(arr[i] > arr[j]) {
+        let temp = arr[j];
+        arr[j] = arr[i];
+        arr[i] = temp
+      }
+    }
+  }
+  return arr
+} */
+
+/* const bubble = (arr) => {
+  for(let i = arr.length - 1; i > 0 ; i--) {
+    for(let k = 0; k < i; k++) {
+      if(arr[k] > arr[k + 1]) {
+        let temp = arr[k + 1];
+        arr[k+1] = arr[k];
+        arr[k] = temp;
+      }
+    }
+  }
+  return arr
+} */
+
+//  插入排序
+/* const insertSort = (arr, start = 0, end) => {
+  end = end || arr.length;
+  for(let i=0; i<end; i++) {
+    for(let j = i; j>start && arr[j-1] > arr[j]; j--) {
+      let temp = arr[j];
+      arr[j] = arr[j-1];
+      arr[j-1] = temp;
+    }
+  }
+  return arr;
+} */
+
+// 选择排序
+/* const selection = (arr) => {
+  if(!Array.isArray(arr)) return;
+  for (let i = 0; i<arr.length-1; i++){
+    let minIndex = i;
+    for(let j = i+1; j<arr.length; j++) {
+      minIndex = arr[j] < arr[minIndex] ? j : minIndex
+    }
+    let temp = arr[i];
+    arr[i] = arr[minIndex];
+    arr[minIndex] = temp;
+  }
+  return arr;
+} */
+
+//  归并排序
+/* const sort = (arr) => {
+  if(!Array.isArray(arr)) return;
+  mergeSort(arr, 0, arr.length - 1);
+  return arr
+}
+const mergeSort = (arr, left, right) => {
+  if(left === right) return   // 左右索引相同
+  let mid = parseInt(left + ((right - left) >> 1));
+  mergeSort(arr, left, mid)
+  mergeSort(arr, mid + 1, right)
+
+  let help = [];
+  let i = 0;
+  let p1 = left;
+  let p2 = mid + 1;
+  console.log(mid)
+  console.log(p1, p2, 7777777)
+  while (p1 <= mid && p2 <= right) {
+    console.log(arr[p1++], 333)
+    help[i++] = arr[p1] < arr[p2] ? arr[p1++] : arr[p2++]
+  }
+  while (p1 <= mid) {
+    help[i++] = arr[p1++];
+  }
+  while (p2 <= right) {
+    help[i++] = arr[p2++];
+  }
+  for (let i = 0; i < help.length; i++) {
+    arr[left + i] = help[i];
+  }
+  return arr;
+} */
+
+/* let arr = [1,5,7,3,6,9,2,6,8]
+console.log(_sort(arr)) */
+/* let arr = [1,5,7,3,6,9,2,6,8]
+var quickSort = function(arr) {
+  　　if (arr.length <= 1) {//如果数组长度小于等于1无需判断直接返回即可
+          return arr;
+      }
+  　　var pivotIndex = Math.floor(arr.length / 2);//取基准点
+  　　var pivot = arr.splice(pivotIndex, 1)[0];//取基准点的值,splice(index,1)函数可以返回数组中被删除的那个数
+  　　var left = [];//存放比基准点小的数组
+  　　var right = [];//存放比基准点大的数组
+  　　for (var i = 0; i < arr.length; i++){ //遍历数组，进行判断分配
+  　　　　if (arr[i] < pivot) {
+  　　　　　　left.push(arr[i]);//比基准点小的放在左边数组
+  　　　　} else {
+  　　　　　　right.push(arr[i]);//比基准点大的放在右边数组
+  　　　　}
+  　　}
+           //递归执行以上操作,对左右两个数组进行操作，直到数组长度为<=1；
+  　　return quickSort(left).concat([pivot], quickSort(right));
+  };
+
+console.log(quickSort(arr))
+ */
+
+//  节流
+/* const throttle = (func, wait=50) => {
+  // 上次执行的时间
+  let lastTime = 0;
+  return function (...args) {
+    // 当前时间
+    let now = +new Date();
+    if(now - lastTime > wait) {
+      lastTime = now
+      func.apply(this,args)
+    }
+  }
+}
+
+setInterval(
+  throttle(() => {
+    console.log(1)
+  }, 3000),
+  1
+)
+ */
+
+/* const throttle = (func, wait=50) => {
+  let timeout;
+  return function (...args) {
+    if(!timeout) {
+      timeout = setTimeout(() => {
+        timeout = null;
+        func.apply(this, args)
+      }, wait);
+    }
+  }
+} */
+
+//  防抖
+/* const debounce = (func, wait=50) => {
+  // 缓存一个定时器
+  let timer = 0;
+  return function(...args) {
+    if(timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      func.apply(this, args)
+    }, wait)
+  }
+}
+ */
+
+// 立即执行
+/* const debouce = (func, wait=50) => {
+  let timeout;
+  return function(...args) {
+    if(timeout) clearTimeout(timeout);
+    let callNow = !timeout;
+    timeout = setTimeout(() => {
+      timeout = null;
+    }, wait);
+    if(callNow) func.apply(this, args)
+  }
+} */
+
+// 组合
+
+/* const debounce = (func, wait, immediate) => {
+  let timeout;
+  return function (...args) {
+    if(timeout) clearTimeout(timeout);
+    if(immediate) {
+      let callNow = !timeout;
+      timeout = setTimeout(() => {
+        timeout = null;
+      }, wait);
+      if(callNow) func.apply(this,args)
+    }else {
+      timeout = setTimeout(() => {
+        func.apply(this, args)
+      }, wait);
+    }
+  }
+}
+ */
+
+//  setTimeout 模拟 setInterval
