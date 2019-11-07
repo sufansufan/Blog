@@ -569,7 +569,7 @@ setInterval(
 
 console.log(add(1)(2)(3)) */
 
-let a = {
+/* let a = {
   i: 1,
   toString: () => {
     return a.i ++
@@ -579,3 +579,16 @@ let a = {
 if(a == 1 && a==2) {
   console.log('成功')
 }
+ */
+const list = [
+  { id: 1, a: 1 },
+  { id: 2, a: 2 },
+  { id: 3, a: 3 },
+  { id: 1, a: 4 },
+]
+
+const result = list.reduce((one, two) => {
+  const ids = one.map(item => item.id)
+  return ids.includes(two.id) ? one : one.concat(two)
+}, [])
+console.log(result)

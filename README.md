@@ -561,6 +561,83 @@ newArr[1] = 300
 console.log(arr, newArr)
 ~~~
 
+### 数组去重
+
+#### new Set()
+~~~
+let arr = [1,2,1,2,3,4,5,2,2,3,4,6,7,8,4,9]
+console.log(Array.from(new Set(arr)))
+console.log([...new Set(arr)])
+~~~
+
+#### new Map()
+~~~
+let arr = [1,2,1,2,3,4,5,2,2,3,4,6,7,8,4,9]
+let result = []
+let map = new Map();
+for(let i of arr) {
+  if(!map.has(i)) {
+    map.set(i, true)
+    result.push(i)
+  }
+}
+console.log(result)
+~~~
+
+#### 使用include
+~~~
+let arr = [1,2,1,2,3,4,5,2,2,3,4,6,7,8,4,9]
+let result = []
+for(let i of arr) {
+  if(!result.includes(i)) {
+    result.push(i)
+  }
+}
+console.log(result)
+~~~
+
+#### 使用循环
+~~~
+let arr = [1,2,1,2,3,4,5,2,2,3,4,6,7,8,4,9]
+for (let i = 0; i < arr.length; i++) {
+  for (let j = i+1; j < arr.length; j++) {
+    if(arr[i] === arr[j]) {
+      arr.splice(j, 1)
+    }
+  }
+}
+
+console.log(arr)
+~~~
+
+#### 利用Object + filter
+~~~
+let arr = [1,2,1,2,3,4,5,2,2,3,4,6,7,8,4,9]
+const obj = {};
+const result = arr.filter(item =>
+  obj.hasOwnProperty(typeof item + item) ? false : obj[typeof item + item] = true
+)
+
+console.log(result)
+~~~
+
+### 对象去重
+~~~
+const list = [
+  { id: 1, a: 1 },
+  { id: 2, a: 2 },
+  { id: 3, a: 3 },
+  { id: 1, a: 4 },
+]
+
+const result = list.reduce((one, two) => {
+  const ids = one.map(item => item.id)
+  return ids.includes(two.id) ? one : one.concat(two)
+}, [])
+console.log(result)
+~~~
+
+
 #### 深拷贝
 
 ##### JSON.parse(JSON.stringify())
