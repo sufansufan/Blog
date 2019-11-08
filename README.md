@@ -1108,6 +1108,19 @@ function add() {
 console.log(add(1)(2)(3))
 ~~~
 
+~~~
+const curry = (fn, ...args1) => (...args2) => (
+ arg => arg.length === fn.length ? fn(...arg) : curry(fn, ...arg)
+)([...args1, ...args2]);
+
+// 调用
+const foo = (a, b, c) => a * b * c;
+curry(foo)(2, 3, 4); // -> 24
+curry(foo, 2)(3, 4); // -> 24
+curry(foo, 2, 3)(4); // -> 24
+curry(foo, 2, 3, 4)(); // -> 24
+~~~
+
 ### 排序
 
 #### 冒泡排序
@@ -1245,3 +1258,139 @@ var quickSort = function(arr) {
 
 console.log(quickSort(arr))
 ~~~
+### (算法题) 如何从10000个数中找到最大的10个数
+> 创建一个最小堆结构，初始值为10000个数的前10个，堆顶为10个数里的最小数。然后遍历剩下的9990个数，如果数字小于堆顶的数，则直接丢弃，否则把堆顶的数删除，将遍历的数插入堆中，堆结构进行自动调整，所以可以保证堆顶的数一定是10个数里最小的。遍历完毕后，堆里的10个数就是这10000个数里面最大的10个。
+
+## React
+### React实现的移动应用中，如果出现卡顿，有哪些可以考虑的优化方案
+- 增加shouldComponentUpdate钩子对新旧props进行比较，如果值相同则阻止更新，避免不必要的渲染，或者使用PureReactComponent替代Component，其内部已经封装了shouldComponentUpdate的浅比较逻辑；
+- 对于列表或其他结构相同的节点，为其中的每一项增加唯一key属性，以方便React的diff算法中对该节点的复用，减少节点的创建和删除操作；
+- render函数中减少类似onClick={() => {doSomething()}}的写法，每次调用render函数时均会创建一个新的函数，即使内容没有发生任何变化，也会导致节点没必要的重渲染，建议将函数保存在组件的成员对象中，这样只会创建一次；
+- 组件的props如果需要经过一系列运算后才能拿到最终结果，则可以考虑使用reselect库对结果进行缓存，如果props值未发生变化，则结果直接从缓存中拿，避免高昂的运算代价；
+- webpack-bundle-analyzer分析当前页面的依赖包，是否存在不合理性，如果存在，找到优化点并进行优化。
+
+### 高阶组件
+高阶组件(Higher Order Componennt)本身其实不是组件，而是一个函数，这个函数接收一个元组件作为参数，然后返回一个新的增强组件，高阶组件的出现本身也是为了逻辑复用
+
+### 什么是 React Fiber?
+Fiber 是 React 16 中新的协调引擎或重新实现核心算法。它的主要目标是支持虚拟DOM的增量渲染。React Fiber 的目标是提高其在动画、布局、手势、暂停、中止或重用等方面的适用性，并为不同类型的更新分配优先级，以及新的并发原语。
+React Fiber 的目标是增强其在动画、布局和手势等领域的适用性。它的主要特性是增量渲染:能够将渲染工作分割成块，并将其分散到多个帧中。
+
+### 在 React 中使用构造函数和 getInitialState 有什么区别？
+构造函数和getInitialState之间的区别就是ES6和ES5本身的区别。在使用ES6类时，应该在构造函数中初始化state，并在使用React.createClass时定义getInitialState方法。
+~~~
+class MyComponent extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { /* initial state */ };
+  }
+}
+~~~
+等价于
+~~~
+var MyComponent = React.createClass({
+  getInitialState() {
+    return { /* initial state */ };
+  },
+});
+~~~
+
+### 当调用setState时，React render 是如何工作的？
+咱们可以将"render"分为两个步骤：
+- 虚拟 DOM 渲染:当render方法被调用时，它返回一个新的组件的虚拟 DOM 结构。当调用setState()时，render会被再次调用，因为默认情况下shouldComponentUpdate总是返回true，所以默认情况下 React 是没有优化的。
+- 原生 DOM 渲染:React 只会在虚拟DOM中修改真实DOM节点，而且修改的次数非常少——这是很棒的React特性，它优化了真实DOM的变化，使React变得更快。
+
+### react中三种获取数据
+
+(三种获取数据)[https://juejin.im/post/5dc4ada5f265da4cfb51303e]
+
+#### 使用生命周期获取数据
+- componentDidMount()：组件挂载后执行
+- componentDidUpdate(prevProps):当 props 或 state 改变时执行
+
+优点：
+这种方法很容易理解:componentDidMount()在第一次渲染时获取数据，而componentDidUpdate()在props更新时重新获取数据。
+
+缺点：
+- 样板代码：基于类的组件需要继承React.Component，在构造函数中执行 super(props) 等等。
+- this：使用 this 关键字很麻烦。
+- 代码重复： componentDidMount()和componentDidUpdate()中的代码大部分是重复的。
+- 很难重用： 员工获取逻辑很难在另一个组件中重用
+
+#### 使用Hooks获取数据
+~~~
+import EmployeesList from "./EmployeesList";
+import { fetchEmployees } from "./fake-fetch";
+
+function EmployeesPage({ query }) {
+  const [isFetching, setFetching] = useState(false);
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(function fetch() {
+    (async function() {
+      setFetching(true);
+      setEmployees(await fetchEmployees(query));
+      setFetching(false);
+    })();
+  }, [query]);
+
+  if (isFetching) {
+    return <div>Fetching employees....</div>;
+  }
+  return <EmployeesList employees={employees} />;
+}
+~~~
+
+优点：
+- 清楚和简单：Hooks没有样板代码，因为它们是普通的函数。
+- 可重用性：在 Hooks 中实现的获取数据逻辑很容易重用。
+
+缺点：
+- 需要前置知识：Hooks 有点违反直觉，因此在使用之前必须理解它们，Hooks 依赖于闭包，所以一定要很好地了解它们。
+- 必要性： 使用Hooks，仍然必须使用命令式方法来执行数据获取。
+
+#### 使用suspense获取数据
+~~~
+import React, { Suspense } from "react";
+import EmployeesList from "./EmployeesList";
+
+function EmployeesPage({ resource }) {
+  return (
+    <Suspense fallback={<h1>Fetching employees....</h1>}>
+      <EmployeesFetch resource={resource} />
+    </Suspense>
+  );
+}
+
+function EmployeesFetch({ resource }) {
+  const employees = resource.employees.read();
+  return <EmployeesList employees={employees} />;
+}
+~~~
+
+优点：
+- Suspense 以声明性和同步的方式处理异步操作。组件没有复杂数据获取逻辑，而是以声明方式使用资源来渲染内容。在组件内部没有生命周期，没有 Hooks，async/await，没有回调：仅展示界面
+
+## 浏览器
+### 浏览器缓存机制
+浏览器的缓存机制可分为强缓存和协商缓存，服务端可以在响应头中增加Cache-Control/Expires来为当前资源设置缓存有效期(Cache-Control的max-age的优先级高于Expires)，浏览器再次发送请求时，会先判断缓存是否过期，如果未过期则命中强缓存，直接使用浏览器的本地缓存资源，如果已过期则使用协商缓存。
+协商缓存大致有以下两种方案：
+(1) 唯一标识：Etag(服务端响应携带) & If-None-Match(客户端请求携带)；
+(2) 最后修改时间： Last-Modified(服务端响应携带) & If-Modified-Since (客户端请求携带) ，其优先级低于Etag。
+服务端判断值是否一致，如果一致，则直接返回304通知浏览器使用本地缓存，如果不一致则返回新的资源。
+
+## Css
+### Css3
+#### transition 过渡动画：
+- transition-property：属性名称
+- transition-duration: 间隔时间
+- transition-timing-function: 动画曲线
+- transition-delay: 延迟
+##### animation 关键帧动画：
+- animation-name：动画名称
+- animation-duration: 间隔时间
+- animation-timing-function: 动画曲线
+- animation-delay: 延迟
+- animation-iteration-count：动画次数
+- animation-direction: 方向
+- animation-fill-mode: 禁止模式
