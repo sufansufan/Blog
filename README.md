@@ -1121,6 +1121,33 @@ curry(foo, 2, 3)(4); // -> 24
 curry(foo, 2, 3, 4)(); // -> 24
 ~~~
 
+### js中的事件流
+> html中与javaScript交互是通过事件驱动完成的，例如鼠标点击事件onclick、页面的滚动事件、onscroll等等，可以向文档或文档中的元素添加事件侦听器来预定事件。想要知道这些事件是在什么时候进行调用的，需要了解一下 "事件流"
+> 事件流描述的是从页面中接收事件的顺序，DOM2级的事件流包括下面的阶段
+
+- 事件捕获阶段
+- 处于目标阶段
+- 事件冒泡阶段
+
+ ie8以上 e.stopPropagation() 方式阻止事件的冒泡，ie8以下e.cancleBubble = true 阻止事件冒泡，jQ 中的 mouseenter 和 mouseleave 也是默认不冒泡
+
+#### addEventListener
+> 是Dom2级事件新增的指定事件处理程序的操作，这个方法可以接收三个参数：要处理的事件、作为事件处理程序的函数和一个布尔值。最后的布尔值参数如果是true， 表示在捕获阶段调用事件处理程序； 如果表示false，表示冒泡阶段调用事件处理程序
+
+**IE只支持事件冒泡**
+
+#### 如何先冒泡后捕获
+> 在dom标准事件模型中，是先捕获后冒泡。但是如果要实现先冒泡后捕获的效果，对于同一个事件，监听捕获和冒泡，分别对应的处理函数，监听到捕获事件，先暂缓执行，直到冒泡事件被捕获后执行捕获
+
+### 伪数组
+> 伪数组是一个含有length属性的json对象 利用Array.prototype.slice转换成真实的数组
+
+~~~
+let obj = {0: '1', 1: '2', length: 2}
+let arr = Array.prototype.slice.call(obj)
+console.log(arr)
+~~~
+
 ### 排序
 
 #### 冒泡排序
@@ -1302,7 +1329,7 @@ var MyComponent = React.createClass({
 
 ### react中三种获取数据
 
-(三种获取数据)[https://juejin.im/post/5dc4ada5f265da4cfb51303e]
+[三种获取数据](https://juejin.im/post/5dc4ada5f265da4cfb51303e)
 
 #### 使用生命周期获取数据
 - componentDidMount()：组件挂载后执行
@@ -1379,6 +1406,29 @@ function EmployeesFetch({ resource }) {
 (2) 最后修改时间： Last-Modified(服务端响应携带) & If-Modified-Since (客户端请求携带) ，其优先级低于Etag。
 服务端判断值是否一致，如果一致，则直接返回304通知浏览器使用本地缓存，如果不一致则返回新的资源。
 
+### 请介绍一下 XSS 和 CSRF 的区别，如何防御
+#### XSS
+> XSS 全称“跨站脚本”（Cross-site scripting），是注入攻击的一种。其特点是不对服务器端造成任何伤害，而是通过一些正常的站内交互途径，例如发布评论，提交含有 JavaScript 的内容文本。这时服务器端如果没有过滤或转义掉这些脚本，作为内容发布到了页面上，其他用户访问这个页面的时候就会运行这些脚本。
+
+#### 防御 XSS 攻击可以通过以下两方面操作：
+- 对用户表单输入的数据进行过滤，对 javascript 代码进行转义，然后再存入数据库；
+- 在信息的展示页面，也要进行转义，防止 javascript 在页面上执行。
+
+#### CSRF
+> CSRF 的全称是“跨站请求伪造”（Cross-site request forgery），而 XSS 的全称是“跨站脚本”。看起来有点相似，它们都是属于跨站攻击——不攻击服务器端而攻击正常访问网站的用户，但前面说了，它们的攻击类型是不同维度上的分类。CSRF 顾名思义，是伪造请求，冒充用户在站内的正常操作。我们知道，绝大多数网站是通过 cookie 等方式辨识用户身份（包括使用服务器端 Session 的网站，因为 Session ID 也是大多保存在 cookie 里面的），再予以授权的。所以要伪造用户的正常操作，最好的方法是通过 XSS 或链接欺骗等途径，让用户在本机（即拥有身份 cookie 的浏览器端）发起用户所不知道的请求。 严格意义上来说，CSRF 不能分类为注入攻击，因为 CSRF 的实现途径远远不止 XSS 注入这一条。通过 XSS 来实现 CSRF 易如反掌，但对于设计不佳的网站，一条正常的链接都能造成 CSRF。
+
+#### CSRF 攻击的防御可以通过以下两方面操作：
+所有需要用户登录之后才能执行的操作属于重要操作，这些操作传递参数应该使用 post 方式，更加安全；
+为防止跨站请求伪造，我们在某次请求的时候都要带上一个 csrf_token 参数，用于标识请求来源是否合法，csrf_token 参数由系统生成，存储在 SESSION 中。
+
+### webSocket的实现与应用
+> WebSocket是HTML5中的协议，支持持久连续，http协议不支持持久性连接。Http1.0和HTTP1.1都不支持持久性的链接，HTTP1.1中的keep-alive，将多个http请求合并为1个
+
+#### WebSocket是什么样的协议
+- HTTP的生命周期通过Request来界定，也就是Request一个Response，那么在Http1.0协议中，这次Http请求就结束了。在Http1.1中进行了改进，是的有一个connection：Keep-alive，也就是说，在一个Http连接中，可以发送多个Request，接收多个Response。但是必须记住，在Http中一个Request只能对应有一个Response，而且这个Response是被动的，不能主动发起。
+- WebSocket是基于Http协议的，或者说借用了Http协议来完成一部分握手，在握手阶段与Http是相同的。我们来看一个websocket握手协议的实现，基本是2个属性，upgrade，connection。
+
+
 ## Css
 ### Css3
 #### transition 过渡动画：
@@ -1394,3 +1444,5 @@ function EmployeesFetch({ resource }) {
 - animation-iteration-count：动画次数
 - animation-direction: 方向
 - animation-fill-mode: 禁止模式
+
+### IFC

@@ -580,7 +580,7 @@ if(a == 1 && a==2) {
   console.log('成功')
 }
  */
-const list = [
+/* const list = [
   { id: 1, a: 1 },
   { id: 2, a: 2 },
   { id: 3, a: 3 },
@@ -592,3 +592,12 @@ const result = list.reduce((one, two) => {
   return ids.includes(two.id) ? one : one.concat(two)
 }, [])
 console.log(result)
+ */
+/* function a () {}
+a.toString = function () {
+	return '3'
+}
+console.log(a) */
+let obj = {0: '1', 1: '2', length: 2}
+let arr = Array.prototype.slice.call(obj)
+console.log(arr)
